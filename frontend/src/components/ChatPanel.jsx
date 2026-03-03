@@ -1,68 +1,92 @@
 import { useState, useRef, useEffect } from "react"
-import { Send, MessageCircle } from "lucide-react"
+import { Send } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
 
 export default function ChatPanel({ messages, onSend, disabled }) {
     const [input, setInput] = useState("")
     const bottomRef = useRef(null)
 
-    useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    }, [messages])
 
     const handleSend = () => {
         if (!input.trim() || disabled) return
-        onSend(input); setInput("")
+        onSend(input)
+        setInput("")
     }
 
+    const handleKeyDown = (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault()
+            handleSend()
+        }
+    }
+
+    const formatTime = (ts) =>
+        new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+
     return (
-        <div className="flex flex-col h-full rounded-[1.75rem] border border-[#e1e2f6] bg-white shadow-sm overflow-hidden relative">
-            <div className="flex items-center gap-2.5 px-6 py-4 border-b border-[#f2f2fa] shrink-0 bg-white">
-                <MessageCircle className="w-4 h-4 text-[#201f35]" />
-                <span className="text-[13px] font-bold text-[#1e1e2d] uppercase tracking-wide">Live Chat</span>
-                {messages.length > 0 && <span className="ml-auto text-[11px] font-medium text-[#8e8e98]">{messages.length}</span>}
+        <div className="flex flex-col h-full bg-[#0f0f0f] rounded-xl border border-[#2a2a2a] overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-[#2a2a2a] shrink-0">
+                <p className="text-xs font-medium text-[#4b5563] uppercase tracking-wider">Live Chat</p>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto w-full bg-[#fcfcfd]" style={{ scrollbarWidth: "none" }}>
-                <div className="flex flex-col gap-2 p-5">
+            <ScrollArea className="flex-1 min-h-0">
+                <div className="flex flex-col gap-2 p-3">
                     {messages.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-28 text-[#8e8e98] text-[13px] font-medium mt-10">
-                            <div className="w-12 h-12 rounded-[1rem] bg-[#f5f5f7] border border-[#e1e2f6] flex items-center justify-center mb-4">
-                                <MessageCircle className="w-5 h-5 text-[#8e8e98]" />
-                            </div>
-                            {disabled ? "Connect to chat securely" : "Say hi!"}
+                        <div className="flex items-center justify-center h-24 text-[#4b5563] text-sm">
+                            {disabled ? "Connect to start chatting" : "Say hello! 👋"}
                         </div>
                     ) : (
                         messages.map((msg, i) => (
-                            <div key={i} className={`flex ${msg.fromSelf ? "justify-end" : "justify-start"}`}>
-                                <div className={`max-w-[85%] px-4 py-2.5 text-[14px] leading-relaxed break-words shadow-sm
-                   ${msg.fromSelf
-                                        ? "bg-[#201f35] text-white rounded-2xl rounded-tr-md"
-                                        : "bg-white text-[#1e1e2d] border border-[#e1e2f6] rounded-2xl rounded-tl-md"
-                                    }`}>
+                            <div
+                                key={i}
+                                className={cn(
+                                    "flex flex-col",
+                                    msg.fromSelf ? "items-end" : "items-start"
+                                )}
+                            >
+                                <div
+                                    className={cn(
+                                        "max-w-[82%] px-3 py-2 rounded-2xl text-sm leading-relaxed break-words",
+                                        msg.fromSelf
+                                            ? "bg-blue-600 text-white rounded-br-sm"
+                                            : "bg-[#1a1a1a] text-[#e5e7eb] border border-[#2a2a2a] rounded-bl-sm"
+                                    )}
+                                >
                                     {msg.message}
                                 </div>
+                                <span className="text-[10px] text-[#374151] mt-0.5 px-1">
+                                    {formatTime(msg.timestamp)}
+                                </span>
                             </div>
                         ))
                     )}
-                    <div ref={bottomRef} className="h-2" />
+                    <div ref={bottomRef} />
                 </div>
-            </div>
+            </ScrollArea>
 
-            <div className="flex items-center gap-3 px-5 py-4 border-t border-[#f2f2fa] shrink-0 bg-white">
-                <input
+            <div className="flex items-center gap-2 p-2 border-t border-[#2a2a2a] shrink-0">
+                <Input
                     value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     disabled={disabled}
-                    placeholder={disabled ? "Waiting..." : "Send a message"}
-                    className="flex-1 h-[42px] px-4 text-[14px] bg-[#f5f5f7] border border-[#e8e8ed] rounded-full text-[#141416] 
-            placeholder:text-[#8e8e98] focus:outline-none focus:border-[#201f35] focus:ring-1 focus:ring-[#201f35] transition-all"
+                    placeholder={disabled ? "Waiting for connection…" : "Type a message…"}
+                    className="flex-1 h-8 text-sm"
                 />
-                <button
+                <Button
+                    size="icon-sm"
                     onClick={handleSend}
                     disabled={disabled || !input.trim()}
-                    className="h-[42px] w-[42px] rounded-full bg-[#201f35] flex items-center justify-center text-white shrink-0 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1a192e] transition-colors shadow-sm"
+                    className="h-8 w-8 shrink-0"
                 >
-                    <Send className="w-4 h-4 ml-0.5" />
-                </button>
+                    <Send className="w-3.5 h-3.5" />
+                </Button>
             </div>
         </div>
     )
