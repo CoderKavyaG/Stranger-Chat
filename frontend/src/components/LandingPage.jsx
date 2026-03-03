@@ -1,86 +1,100 @@
-import { Video, Zap, Shield, MessageCircle, Users, ArrowRight } from "lucide-react"
+import { Video, Shield, Zap, MessageSquare, Github, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 
+const features = [
+    { icon: Shield, label: "Anonymous", desc: "No account, no trace" },
+    { icon: Zap, label: "Instant Match", desc: "Matched in seconds" },
+    { icon: Video, label: "P2P Video", desc: "WebRTC peer-to-peer" },
+    { icon: MessageSquare, label: "Text Chat", desc: "Real-time messaging" },
+]
+
 export default function LandingPage({ onStart, onlineCount }) {
-    const features = [
-        { icon: Shield, label: "Anonymous", desc: "Zero identity, zero trace" },
-        { icon: Zap, label: "Instant Match", desc: "Found in under 3 seconds" },
-        { icon: Video, label: "HD Video", desc: "P2P WebRTC streaming" },
-        { icon: MessageCircle, label: "Live Chat", desc: "Text while you talk" },
-    ]
-
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden bg-[#0a0a0a]">
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-blue-600/5 rounded-full blur-3xl" />
-                <div className="absolute bottom-1/3 left-1/4 w-[400px] h-[300px] bg-violet-600/5 rounded-full blur-3xl" />
-                <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] bg-blue-400/3 rounded-full blur-3xl" />
-            </div>
+        <div className="min-h-screen flex flex-col bg-[#09090b]">
+            <header className="flex items-center justify-between px-6 h-14 border-b border-[#18181b]">
+                <div className="flex items-center gap-2">
+                    <Video className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm font-semibold text-white tracking-tight">StrangerChat</span>
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5 text-xs text-[#71717a]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                        <span>{onlineCount} online</span>
+                    </div>
+                    <a
+                        href="https://github.com/goelsahhab"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#52525b] hover:text-[#a1a1aa] transition-colors"
+                        title="@goelsahhab"
+                    >
+                        <Github className="w-4 h-4" />
+                    </a>
+                </div>
+            </header>
 
-            <div className="relative z-10 flex flex-col items-center text-center max-w-2xl w-full gap-8">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-xl shadow-blue-600/30">
-                            <Video className="w-6 h-6 text-white" />
-                        </div>
-                        <span className="text-3xl font-bold text-white tracking-tight">StrangerChat</span>
+            <main className="flex-1 flex flex-col items-center justify-center px-6 py-20">
+                <div className="flex flex-col items-center text-center gap-8 max-w-xl w-full">
+                    <div className="flex flex-col items-center gap-4">
+                        <Badge variant="outline" className="text-[11px] px-3">
+                            No account required
+                        </Badge>
+                        <h1 className="text-5xl md:text-6xl font-bold text-white leading-tight tracking-tighter">
+                            Talk to strangers,
+                            <br />
+                            <span className="text-blue-500">anonymously.</span>
+                        </h1>
+                        <p className="text-[#71717a] text-base leading-relaxed">
+                            Random video and text chat. Press start and you get matched with someone, instantly.
+                        </p>
                     </div>
 
-                    <Badge variant="success" className="text-xs px-3 py-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                        {onlineCount} people online right now
-                    </Badge>
-                </div>
+                    <div className="flex flex-col items-center gap-3 w-full max-w-[260px]">
+                        <Button size="lg" onClick={onStart} className="w-full rounded-lg font-semibold">
+                            Start Chatting
+                            <ArrowRight className="w-4 h-4" />
+                        </Button>
+                        <p className="text-[#52525b] text-xs">No plugins · Works in your browser</p>
+                    </div>
 
-                <div className="flex flex-col gap-3">
-                    <h1 className="text-5xl md:text-7xl font-bold text-white leading-[1.05] tracking-tight">
-                        Meet strangers.{" "}
-                        <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-violet-500 bg-clip-text text-transparent">
-                            Anonymously.
-                        </span>
-                    </h1>
-                    <p className="text-[#6b7280] text-lg leading-relaxed max-w-lg mx-auto">
-                        No sign up. No history. No strings attached. Just real conversations with real people — right now.
-                    </p>
-                </div>
+                    <Separator className="bg-[#18181b] max-w-sm" />
 
-                <div className="flex flex-col items-center gap-3 w-full max-w-xs">
-                    <Button
-                        onClick={onStart}
-                        size="lg"
-                        className="w-full text-base font-semibold shadow-xl shadow-blue-600/25 rounded-xl"
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
+                        {features.map(({ icon: Icon, label, desc }) => (
+                            <div
+                                key={label}
+                                className="flex flex-col items-center gap-2.5 p-4 rounded-xl border border-[#18181b] bg-[#09090b] hover:border-[#27272a] transition-colors"
+                            >
+                                <div className="w-8 h-8 rounded-lg bg-[#18181b] border border-[#27272a] flex items-center justify-center">
+                                    <Icon className="w-4 h-4 text-blue-500" />
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-xs font-semibold text-white">{label}</p>
+                                    <p className="text-[11px] text-[#52525b] mt-0.5">{desc}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </main>
+
+            <footer className="flex items-center justify-center gap-2 py-4 border-t border-[#18181b]">
+                <span className="text-xs text-[#52525b]">
+                    Built with care by{" "}
+                    <a
+                        href="https://github.com/goelsahhab"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#71717a] hover:text-white transition-colors font-medium"
                     >
-                        Start Chatting
-                        <ArrowRight className="w-4 h-4" />
-                    </Button>
-                    <p className="text-[#4b5563] text-xs">No account required · Works in your browser</p>
-                </div>
-
-                <Separator className="max-w-sm" />
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
-                    {features.map(({ icon: Icon, label, desc }) => (
-                        <Card key={label} className="bg-[#0f0f0f] border-[#1e1e1e] hover:border-[#2a2a2a] transition-colors">
-                            <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-                                <div className="w-9 h-9 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center">
-                                    <Icon className="w-4 h-4 text-blue-400" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-white">{label}</p>
-                                    <p className="text-xs text-[#4b5563] mt-0.5">{desc}</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-
-                <p className="text-[#2a2a2a] text-xs">
-                    Powered by WebRTC · Socket.IO · React
-                </p>
-            </div>
+                        @goelsahhab
+                    </a>
+                </span>
+                <span className="text-[#3f3f46] text-xs">·</span>
+                <span className="text-xs text-[#3f3f46]">WebRTC · Socket.IO · React</span>
+            </footer>
         </div>
     )
 }
