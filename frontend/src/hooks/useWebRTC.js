@@ -2,11 +2,21 @@ import { useEffect, useRef, useCallback } from "react";
 import SimplePeer from "simple-peer";
 import { getSocket } from "./useSocket";
 
-const STUN_SERVERS = {
-    iceServers: [
+const getIceServers = () => {
+    const servers = [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
-    ],
+    ];
+
+    if (import.meta.env.VITE_TURN_URL) {
+        servers.push({
+            urls: import.meta.env.VITE_TURN_URL,
+            username: import.meta.env.VITE_TURN_USERNAME || "",
+            credential: import.meta.env.VITE_TURN_CREDENTIAL || "",
+        });
+    }
+
+    return { iceServers: servers };
 };
 
 /**
@@ -43,7 +53,7 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
                 initiator: isInitiator,
                 stream: localStream,
                 trickle: true,
-                config: STUN_SERVERS,
+                config: getIceServers(),
             });
 
             // When simple-peer generates ICE/SDP signal data → send via socket
