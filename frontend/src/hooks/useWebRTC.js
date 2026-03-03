@@ -8,6 +8,7 @@ const getIceServers = () => {
         { urls: "stun:stun1.l.google.com:19302" },
     ];
 
+    /* 
     if (import.meta.env.VITE_TURN_URL) {
         servers.push({
             urls: import.meta.env.VITE_TURN_URL,
@@ -15,6 +16,7 @@ const getIceServers = () => {
             credential: import.meta.env.VITE_TURN_CREDENTIAL || "",
         });
     }
+    */
 
     return { iceServers: servers };
 };

@@ -140,7 +140,7 @@ export default function ChatRoom({ onStop, onlineCount }) {
         setTimeout(() => {
             setShowSkipOverlay(false)
             emit("find_partner")
-        }, 1200)
+        }, 600)
     }, [destroyPeer, emit, clearMessages])
 
     const handleStop = useCallback(() => {
@@ -155,10 +155,7 @@ export default function ChatRoom({ onStop, onlineCount }) {
         <div className="flex flex-col h-screen bg-[#0a0a0a] overflow-hidden">
             <header className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a] shrink-0">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
-                        <Video className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="font-bold text-white text-sm tracking-tight">StrangerChat</span>
+                    <span className="font-bold text-white text-lg tracking-tight">StrangerChat</span>
                     <Separator orientation="vertical" className="h-4 mx-1" />
                     <Badge variant="muted" className="gap-1.5 text-xs">
                         <Users className="w-3 h-3" />
@@ -211,7 +208,7 @@ export default function ChatRoom({ onStop, onlineCount }) {
                 <p className="text-[#6b7280] text-xs">
                     Built with <span className="text-red-500">♥</span> by{" "}
                     <a
-                        href="https://github.com/goelsahhab"
+                        href="https://x.com/goelsahhab"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-500 hover:text-blue-400 font-medium transition-colors"
@@ -223,10 +220,16 @@ export default function ChatRoom({ onStop, onlineCount }) {
 
             {
                 showSkipOverlay && (
-                    <div className="absolute inset-0 bg-[#0a0a0a]/85 flex items-center justify-center z-50 backdrop-blur-sm">
-                        <div className="flex flex-col items-center gap-3">
-                            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-                            <p className="text-white text-sm font-medium">Finding next stranger…</p>
+                    <div className="absolute inset-0 bg-[#0a0a0a]/90 flex items-center justify-center z-50 backdrop-blur-md transition-all">
+                        <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-300">
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-2xl animate-pulse" />
+                                <Loader2 className="w-12 h-12 text-blue-500 animate-spin relative z-10" />
+                            </div>
+                            <div className="flex flex-col items-center gap-2">
+                                <h2 className="text-2xl font-bold text-white tracking-tight">Looking for someone new...</h2>
+                                <p className="text-[#6b7280] text-sm italic">Connecting you to the next stranger</p>
+                            </div>
                         </div>
                     </div>
                 )

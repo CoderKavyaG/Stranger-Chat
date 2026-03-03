@@ -23,10 +23,7 @@ export default function LandingPage({ onStart, onlineCount }) {
             <div className="relative z-10 flex flex-col items-center text-center max-w-2xl w-full gap-8">
                 <div className="flex flex-col items-center gap-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-xl shadow-blue-600/30">
-                            <Video className="w-6 h-6 text-white" />
-                        </div>
-                        <span className="text-3xl font-bold text-white tracking-tight">StrangerChat</span>
+                        <span className="text-4xl font-bold text-white tracking-tight">StrangerChat</span>
                     </div>
 
                     <Badge variant="success" className="text-xs px-3 py-1">
@@ -84,7 +81,7 @@ export default function LandingPage({ onStart, onlineCount }) {
                     <p className="text-[#6b7280] text-xs">
                         Built with <span className="text-red-500">♥</span> by{" "}
                         <a
-                            href="https://github.com/goelsahhab"
+                            href="https://x.com/goelsahhab"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-500 hover:text-blue-400 font-medium transition-colors"
