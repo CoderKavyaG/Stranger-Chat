@@ -34,9 +34,9 @@ const getIceServers = () => {
  */
 export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, onError }) {
     const peerRef = useRef(null);
+    const streamRef = useRef(localStream);
     const socket = getSocket();
 
-    // ── Helper: destroy current peer cleanly ─────────────────────────────────
     const destroyPeer = useCallback(() => {
         if (peerRef.current) {
             peerRef.current.destroy();
@@ -44,26 +44,42 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
         }
     }, []);
 
-    // ── Create peer when roomId + localStream are ready ───────────────────────
+    // ── Keep track of localStream to avoid remounting the peer ────────────────
     useEffect(() => {
-        if (!roomId || !localStream) return;
+        if (peerRef.current && !peerRef.current.destroyed && streamRef.current && streamRef.current !== localStream) {
+            localStream.getTracks().forEach(newTrack => {
+                const oldTrack = streamRef.current.getTracks().find(t => t.kind === newTrack.kind)
+                if (oldTrack) {
+                    try {
+                        peerRef.current.replaceTrack(oldTrack, newTrack, streamRef.current)
+                    } catch (e) {
+                        console.error("Failed to replace track", e)
+                    }
+                }
+            })
+            streamRef.current = localStream;
+        } else if (!peerRef.current) {
+            streamRef.current = localStream;
+        }
+    }, [localStream]);
 
+    // ── Create peer only when room changes ────────────────────────────────────
+    useEffect(() => {
+        if (!roomId) return;
         destroyPeer();
 
         try {
             const peer = new SimplePeer({
                 initiator: isInitiator,
-                stream: localStream,
+                stream: streamRef.current,
                 trickle: true,
                 config: getIceServers(),
             });
 
-            // When simple-peer generates ICE/SDP signal data → send via socket
             peer.on("signal", (signal) => {
                 socket.emit("webrtc_signal", { roomId, signal });
             });
 
-            // When we receive the remote stream → surface it to the parent
             peer.on("stream", (remoteStream) => {
                 onRemoteStream(remoteStream);
             });
@@ -73,23 +89,15 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
                 onError("WebRTC connection failed. Falling back to text-only mode.");
             });
 
-            peer.on("close", () => {
-                console.log("[WebRTC] Peer connection closed");
-            });
-
             peerRef.current = peer;
         } catch (err) {
             console.error("[WebRTC] Failed to create peer:", err);
             onError("WebRTC setup failed. Text chat still available.");
         }
 
-        return () => {
-            destroyPeer();
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [roomId, isInitiator, localStream]);
+        return () => destroyPeer();
+    }, [roomId, isInitiator, destroyPeer, onError, onRemoteStream, socket]);
 
-    // ── Feed incoming signals from socket into the peer ───────────────────────
     useEffect(() => {
         const handleSignal = ({ signal }) => {
             if (peerRef.current && !peerRef.current.destroyed) {

@@ -1,6 +1,6 @@
 import { Mic, MicOff, Video, VideoOff, SkipForward, Square, Settings2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
 
 export default function Controls({
     isMuted,
@@ -13,57 +13,63 @@ export default function Controls({
     onSettings,
 }) {
     return (
-        <div className="flex items-center justify-center gap-2 flex-wrap">
+        <div className="flex items-center justify-center gap-3 flex-wrap p-4 glass rounded-[24px]">
             <Button
-                variant={isMuted ? "destructive" : "outline"}
-                size="sm"
+                variant="ghost"
+                size="lg"
                 onClick={onMuteToggle}
-                title={isMuted ? "Unmute mic" : "Mute mic"}
+                className={cn(
+                    "rounded-2xl gap-3 px-6 h-14 transition-all duration-300",
+                    isMuted ? "bg-red-500/10 text-red-500 hover:bg-red-500/20" : "bg-white/5 text-white/70 hover:bg-white/10"
+                )}
             >
-                {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                {isMuted ? "Unmuted" : "Mute"}
+                {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                <span className="font-semibold hidden sm:inline">{isMuted ? "Unmute" : "Mute"}</span>
             </Button>
 
             <Button
-                variant={isCamOff ? "destructive" : "outline"}
-                size="sm"
+                variant="ghost"
+                size="lg"
                 onClick={onCamToggle}
-                title={isCamOff ? "Turn camera on" : "Turn camera off"}
+                className={cn(
+                    "rounded-2xl gap-3 px-6 h-14 transition-all duration-300",
+                    isCamOff ? "bg-red-500/10 text-red-500 hover:bg-red-500/20" : "bg-white/5 text-white/70 hover:bg-white/10"
+                )}
             >
-                {isCamOff ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
-                {isCamOff ? "Cam Off" : "Camera"}
+                {isCamOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                <span className="font-semibold hidden sm:inline">{isCamOff ? "Cam On" : "Cam Off"}</span>
             </Button>
 
             <Button
                 variant="ghost"
                 size="icon"
                 onClick={onSettings}
-                title="Media settings"
-                className="text-[#4b5563] hover:text-white"
+                className="w-14 h-14 rounded-2xl bg-white/5 text-white/30 hover:text-white hover:bg-white/10 transition-all shadow-none"
             >
-                <Settings2 className="w-4 h-4" />
+                <Settings2 className="w-5 h-5" />
             </Button>
 
-            <Separator orientation="vertical" className="h-6 mx-1" />
+            <div className="w-px h-10 bg-white/10 mx-2 hidden sm:block" />
 
             <Button
-                variant="warning"
-                size="sm"
                 onClick={onSkip}
                 disabled={isWaiting}
+                size="lg"
+                className="rounded-2xl gap-3 px-8 h-14 bg-white text-black hover:bg-white/90 font-bold transition-all disabled:opacity-50"
             >
-                <SkipForward className="w-4 h-4" />
-                Skip
+                <SkipForward className="w-5 h-5" />
+                Skip Stranger
             </Button>
 
             <Button
-                variant="destructive"
-                size="sm"
+                variant="ghost"
+                size="icon"
                 onClick={onStop}
+                className="w-14 h-14 rounded-2xl bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-400 transition-all border border-red-500/20 shadow-none"
             >
-                <Square className="w-4 h-4" />
-                Stop
+                <Square className="w-5 h-5 fill-current" />
             </Button>
         </div>
     )
 }
+

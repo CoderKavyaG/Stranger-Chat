@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Video, Users, Loader2, SkipForward } from "lucide-react"
+import { Video, Users, Loader2, SkipForward, Github, X, AlertTriangle } from "lucide-react"
 import { useSocket } from "../hooks/useSocket"
 import { useWebRTC } from "../hooks/useWebRTC"
 import { useChat } from "../hooks/useChat"
@@ -8,9 +8,10 @@ import ChatPanel from "./ChatPanel"
 import Controls from "./Controls"
 import StatusBar from "./StatusBar"
 import MediaSettings from "./MediaSettings"
+import GlowBackground from "./GlowBackground"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function ChatRoom({ onStop, onlineCount }) {
     const [appState, setAppState] = useState("waiting")
@@ -30,7 +31,14 @@ export default function ChatRoom({ onStop, onlineCount }) {
     const [showSkipOverlay, setShowSkipOverlay] = useState(false)
     const [showSettings, setShowSettings] = useState(false)
 
+    const [audioDeviceId, setAudioDeviceId] = useState(null)
+    const [videoDeviceId, setVideoDeviceId] = useState(null)
+
     const { messages, sendMessage, receiveMessage, clearMessages } = useChat(roomId)
+
+    // Use refs so callbacks can access latest values without circular deps
+    const destroyPeerRef = useRef(null)
+    const emitRef = useRef(null)
 
     const clearWaitingTimer = () => {
         if (waitingTimerRef.current) {
@@ -39,6 +47,7 @@ export default function ChatRoom({ onStop, onlineCount }) {
         }
     }
 
+    // Socket event handlers — use refs to avoid forward-reference issues
     const handleMatched = useCallback(({ roomId: rId, initiator }) => {
         clearWaitingTimer()
         setRoomId(rId)
@@ -48,25 +57,34 @@ export default function ChatRoom({ onStop, onlineCount }) {
         setPartnerLeft(false)
         setWaitingTooLong(false)
         clearMessages()
-    }, [])
+    }, [clearMessages])
 
     const handlePartnerLeft = useCallback(() => {
-        setPartnerLeft(true)
-        setStatusText("disconnected")
-        setAppState("waiting")
+        // Auto-reconnect: clean up and immediately find new partner
+        if (destroyPeerRef.current) destroyPeerRef.current()
         setRemoteStream(null)
         setRoomId(null)
         setWebrtcError(null)
+        setPartnerLeft(false)
+        setAppState("waiting")
+        setStatusText("waiting")
         clearMessages()
-    }, [])
+        if (emitRef.current) emitRef.current("leave_room")
+        setShowSkipOverlay(true)
+        setTimeout(() => {
+            setShowSkipOverlay(false)
+            if (emitRef.current) emitRef.current("find_partner")
+        }, 800)
+    }, [clearMessages])
 
     const handleWaiting = useCallback(() => {
         setStatusText("waiting")
         setAppState("waiting")
         clearWaitingTimer()
-        waitingTimerRef.current = setTimeout(() => setWaitingTooLong(true), 30000)
+        waitingTimerRef.current = setTimeout(() => setWaitingTooLong(true), 15000)
     }, [])
 
+    // Now declare hooks that depend on callbacks above
     const { emit } = useSocket({
         matched: handleMatched,
         partner_left: handlePartnerLeft,
@@ -82,50 +100,66 @@ export default function ChatRoom({ onStop, onlineCount }) {
         onError: (msg) => setWebrtcError(msg),
     })
 
-    useEffect(() => {
-        let stream = null
-            ; (async () => {
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        video: { width: 1280, height: 720 },
-                        audio: true,
-                    })
-                    setLocalStream(stream)
-                } catch (err) {
-                    setMediaError(
-                        err.name === "NotAllowedError"
-                            ? "Camera/mic permission denied — text chat still works."
-                            : "Could not access camera — text chat still works."
-                    )
-                }
-            })()
-        return () => {
-            if (stream) stream.getTracks().forEach((t) => t.stop())
+    // Keep refs in sync
+    useEffect(() => { destroyPeerRef.current = destroyPeer }, [destroyPeer])
+    useEffect(() => { emitRef.current = emit }, [emit])
+
+    // Fetch media with specific device IDs
+    const fetchMedia = useCallback(async (aId, vId) => {
+        try {
+            const constraints = {
+                video: vId ? { deviceId: { exact: vId }, width: 1280, height: 720 } : { width: 1280, height: 720 },
+                audio: aId ? { deviceId: { exact: aId } } : true,
+            }
+            const stream = await navigator.mediaDevices.getUserMedia(constraints)
+
+            // Stop old tracks
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop())
+            }
+
+            stream.getAudioTracks().forEach(t => t.enabled = !isMuted)
+            stream.getVideoTracks().forEach(t => t.enabled = !isCamOff)
+
+            setLocalStream(stream)
+            setMediaError(null)
+        } catch (err) {
+            console.error("Media Error:", err)
+            setMediaError(
+                err.name === "NotAllowedError"
+                    ? "Camera/mic permissions were denied. You can still use text chat."
+                    : "We couldn't access your camera. Text chat is still available."
+            )
         }
+    }, [localStream, isMuted, isCamOff])
+
+    // Initial media fetch
+    useEffect(() => {
+        fetchMedia(null, null)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
+    // Start looking for partner on mount
     useEffect(() => {
         emit("find_partner")
-    }, [])
+    }, [emit])
 
     useEffect(() => () => clearWaitingTimer(), [])
 
     const handleMuteToggle = () => {
         if (!localStream) return
-        const track = localStream.getAudioTracks()[0]
-        if (track) {
+        localStream.getAudioTracks().forEach(track => {
             track.enabled = isMuted
-            setIsMuted(!isMuted)
-        }
+        })
+        setIsMuted(!isMuted)
     }
 
     const handleCamToggle = () => {
         if (!localStream) return
-        const track = localStream.getVideoTracks()[0]
-        if (track) {
+        localStream.getVideoTracks().forEach(track => {
             track.enabled = isCamOff
-            setIsCamOff(!isCamOff)
-        }
+        })
+        setIsCamOff(!isCamOff)
     }
 
     const handleSkip = useCallback(() => {
@@ -140,7 +174,7 @@ export default function ChatRoom({ onStop, onlineCount }) {
         setTimeout(() => {
             setShowSkipOverlay(false)
             emit("find_partner")
-        }, 600)
+        }, 800)
     }, [destroyPeer, emit, clearMessages])
 
     const handleStop = useCallback(() => {
@@ -151,29 +185,55 @@ export default function ChatRoom({ onStop, onlineCount }) {
         onStop()
     }, [destroyPeer, emit, localStream, onStop])
 
+    const handleSettingsSave = async (newAudioId, newVideoId) => {
+        setAudioDeviceId(newAudioId)
+        setVideoDeviceId(newVideoId)
+        await fetchMedia(newAudioId, newVideoId)
+        setShowSettings(false)
+    }
+
     return (
-        <div className="flex flex-col h-screen bg-[#0a0a0a] overflow-hidden">
-            <header className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a] shrink-0">
-                <div className="flex items-center gap-2.5">
-                    <span className="font-bold text-white text-lg tracking-tight">StrangerChat</span>
-                    <Separator orientation="vertical" className="h-4 mx-1" />
-                    <Badge variant="muted" className="gap-1.5 text-xs">
-                        <Users className="w-3 h-3" />
-                        {onlineCount} online
-                    </Badge>
+        <div className="flex flex-col h-screen relative bg-[#030303] overflow-hidden text-white">
+            <GlowBackground />
+
+            {/* Header */}
+            <header className="flex items-center justify-between px-8 py-6 z-20 shrink-0 border-b border-white/5 bg-black/20 backdrop-blur-xl">
+                <div className="flex items-center gap-6">
+                    <span className="text-[20px] font-extrabold tracking-[-0.04em] bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent select-none">
+                        drift<span className="text-indigo-400">.</span>
+                    </span>
+                    <div className="w-px h-6 bg-white/10" />
+                    <StatusBar status={statusText} partnerLeft={partnerLeft} waitingTooLong={waitingTooLong} />
                 </div>
-                <StatusBar status={statusText} partnerLeft={partnerLeft} waitingTooLong={waitingTooLong} />
+
+                <div className="flex items-center gap-6">
+                    <Badge variant="outline" className="glass-dark px-4 py-1.5 border-white/5 text-white/40 font-medium hidden md:flex gap-2">
+                        <Users className="w-3 h-3" />
+                        {onlineCount} active
+                    </Badge>
+                    <a href="https://github.com/CoderKavyaG/Stranger-Chat" target="_blank" rel="noreferrer" className="text-white/30 hover:text-white transition-colors">
+                        <Github className="w-5 h-5" />
+                    </a>
+                </div>
             </header>
 
             {mediaError && (
-                <div className="px-4 py-2 bg-amber-500/8 border-b border-amber-500/15 text-amber-400/90 text-xs text-center shrink-0">
-                    {mediaError}
-                </div>
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mx-8 mt-4 px-6 py-4 glass-dark border-red-500/20 text-red-400 text-sm rounded-2xl flex items-center justify-between z-20"
+                >
+                    <div className="flex items-center gap-3">
+                        <AlertTriangle className="w-5 h-5" />
+                        {mediaError}
+                    </div>
+                    <X className="w-4 h-4 cursor-pointer opacity-50 hover:opacity-100" onClick={() => setMediaError(null)} />
+                </motion.div>
             )}
 
-            <div className="flex-1 flex flex-col lg:flex-row gap-3 p-3 min-h-0 overflow-hidden">
-                <div className="flex flex-col gap-3 flex-1 min-h-0">
-                    <div className="flex-1 min-h-0">
+            <main className="flex-1 flex flex-col xl:flex-row gap-6 p-8 min-h-0 overflow-hidden z-10">
+                <div className="flex flex-col gap-6 flex-1 min-h-0">
+                    <div className="flex-1 min-h-0 rounded-[32px] overflow-hidden shadow-2xl">
                         <VideoPanel
                             localStream={localStream}
                             remoteStream={remoteStream}
@@ -195,78 +255,51 @@ export default function ChatRoom({ onStop, onlineCount }) {
                     />
                 </div>
 
-                <div className="flex flex-col lg:w-80 h-52 lg:h-auto min-h-0">
+                <div className="flex flex-col w-full xl:w-[400px] min-h-[300px] xl:h-auto shrink-0">
                     <ChatPanel
                         messages={messages}
                         onSend={sendMessage}
                         disabled={appState !== "chatting"}
                     />
                 </div>
-            </div>
+            </main>
 
-            <footer className="shrink-0 py-2 border-t border-[#1a1a1a] flex justify-center">
-                <p className="text-[#6b7280] text-xs">
-                    Built with <span className="text-red-500">♥</span> by{" "}
-                    <a
-                        href="https://x.com/goelsahhab"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:text-blue-400 font-medium transition-colors"
+            {/* Skip Overlay */}
+            <AnimatePresence>
+                {showSkipOverlay && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-[#000]/95 flex items-center justify-center z-50 backdrop-blur-2xl"
                     >
-                        @goelsahhab
-                    </a>
-                </p>
-            </footer>
-
-            {
-                showSkipOverlay && (
-                    <div className="absolute inset-0 bg-[#0a0a0a]/90 flex items-center justify-center z-50 backdrop-blur-md transition-all">
-                        <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-300">
+                        <div className="flex flex-col items-center gap-8">
                             <div className="relative">
-                                <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-2xl animate-pulse" />
-                                <Loader2 className="w-12 h-12 text-blue-500 animate-spin relative z-10" />
+                                <motion.div
+                                    animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                    className="absolute inset-0 bg-white rounded-full blur-3xl"
+                                />
+                                <Loader2 className="w-16 h-16 text-white animate-spin relative z-10 opacity-80" />
                             </div>
-                            <div className="flex flex-col items-center gap-2">
-                                <h2 className="text-2xl font-bold text-white tracking-tight">Looking for someone new...</h2>
-                                <p className="text-[#6b7280] text-sm italic">Connecting you to the next stranger</p>
+                            <div className="text-center">
+                                <h2 className="text-3xl font-bold tracking-tight mb-2">Curating Next Match</h2>
+                                <p className="text-white/30 text-lg">Finding someone interesting for you...</p>
                             </div>
                         </div>
-                    </div>
-                )
-            }
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-            {
-                partnerLeft && appState === "waiting" && (
-                    <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-40">
-                        <div className="flex items-center gap-3 px-4 py-3 bg-[#111111] border border-[#2a2a2a] rounded-xl shadow-2xl">
-                            <span className="text-sm text-[#e5e7eb]">Stranger has left</span>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                    setPartnerLeft(false)
-                                    emit("find_partner")
-                                }}
-                                className="h-7 text-xs gap-1.5"
-                            >
-                                <SkipForward className="w-3 h-3" />
-                                Find new
-                            </Button>
-                        </div>
-                    </div>
-                )
-            }
-
-            {
-                showSettings && (
-                    <MediaSettings
-                        localStream={localStream}
-                        isMuted={isMuted}
-                        isCamOff={isCamOff}
-                        onClose={() => setShowSettings(false)}
-                    />
-                )
-            }
-        </div >
+            {showSettings && (
+                <MediaSettings
+                    localStream={localStream}
+                    isMuted={isMuted}
+                    isCamOff={isCamOff}
+                    onClose={() => setShowSettings(false)}
+                    onSave={handleSettingsSave}
+                />
+            )}
+        </div>
     )
 }

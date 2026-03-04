@@ -14,7 +14,7 @@ export default function App() {
   }, [])
 
   return (
-    <div className="h-full bg-[#0a0a0a]">
+    <div className="h-full bg-[#030303]">
       {screen === "landing" && (
         <LandingPage onStart={() => setScreen("chatting")} onlineCount={onlineCount} />
       )}
