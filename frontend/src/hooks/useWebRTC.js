@@ -8,15 +8,25 @@ const getIceServers = () => {
         { urls: "stun:stun1.l.google.com:19302" },
     ];
 
-    /* 
-    if (import.meta.env.VITE_TURN_URL) {
+    // Add TURN servers for NAT traversal across different networks
+    const turnUrl = import.meta.env.VITE_TURN_URL;
+    if (turnUrl) {
         servers.push({
-            urls: import.meta.env.VITE_TURN_URL,
+            urls: turnUrl,
             username: import.meta.env.VITE_TURN_USERNAME || "",
             credential: import.meta.env.VITE_TURN_CREDENTIAL || "",
         });
     }
-    */
+
+    // Support multiple TURN servers (VITE_TURN_URL_2, etc.)
+    const turnUrl2 = import.meta.env.VITE_TURN_URL_2;
+    if (turnUrl2) {
+        servers.push({
+            urls: turnUrl2,
+            username: import.meta.env.VITE_TURN_USERNAME || "",
+            credential: import.meta.env.VITE_TURN_CREDENTIAL || "",
+        });
+    }
 
     return { iceServers: servers };
 };
