@@ -56,17 +56,33 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
 
     // ── Keep track of localStream to avoid remounting the peer ────────────────
     useEffect(() => {
-        if (peerRef.current && !peerRef.current.destroyed && streamRef.current && streamRef.current !== localStream) {
-            localStream.getTracks().forEach(newTrack => {
-                const oldTrack = streamRef.current.getTracks().find(t => t.kind === newTrack.kind)
-                if (oldTrack) {
-                    try {
-                        peerRef.current.replaceTrack(oldTrack, newTrack, streamRef.current)
-                    } catch (e) {
-                        console.error("Failed to replace track", e)
-                    }
+        if (peerRef.current && !peerRef.current.destroyed && localStream && streamRef.current !== localStream) {
+            if (!streamRef.current) {
+                // If stream was null when peer was created, add it now
+                try {
+                    peerRef.current.addStream(localStream);
+                } catch (e) {
+                    console.error("Failed to add stream", e);
                 }
-            })
+            } else {
+                // Replace or add individual tracks
+                localStream.getTracks().forEach(newTrack => {
+                    const oldTrack = streamRef.current.getTracks().find(t => t.kind === newTrack.kind)
+                    if (oldTrack) {
+                        try {
+                            peerRef.current.replaceTrack(oldTrack, newTrack, streamRef.current)
+                        } catch (e) {
+                            console.error("Failed to replace track", e)
+                        }
+                    } else {
+                        try {
+                            peerRef.current.addTrack(newTrack, localStream)
+                        } catch (e) {
+                            console.error("Failed to add track", e)
+                        }
+                    }
+                })
+            }
             streamRef.current = localStream;
         } else if (!peerRef.current) {
             streamRef.current = localStream;
@@ -84,6 +100,10 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
                 stream: streamRef.current,
                 trickle: true,
                 config: getIceServers(),
+                offerOptions: {
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true,
+                },
             });
 
             peer.on("signal", (signal) => {

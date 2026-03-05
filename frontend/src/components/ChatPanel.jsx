@@ -30,7 +30,7 @@ export default function ChatPanel({ messages, onSend, disabled }) {
         new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 
     return (
-        <div className="flex flex-col h-full glass border-white/5 rounded-[32px] overflow-hidden">
+        <div className="flex flex-col h-full glass border-white/5 rounded-[16px] sm:rounded-[24px] lg:rounded-[32px] overflow-hidden">
             <div className="px-6 py-4 border-b border-white/5 flex items-center gap-3 shrink-0">
                 <Hash className="w-4 h-4 text-white/20" />
                 <p className="text-sm font-bold tracking-tight text-white/50">MATCH_CHAT</p>

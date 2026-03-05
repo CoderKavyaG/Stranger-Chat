@@ -193,7 +193,7 @@ export default function ChatRoom({ onStop, onlineCount }) {
     }
 
     return (
-        <div className="flex flex-col h-screen relative bg-[#030303] overflow-hidden text-white">
+        <div className="flex flex-col h-[100dvh] relative bg-[#030303] overflow-hidden text-white">
             <GlowBackground />
 
             {/* Header */}
@@ -231,9 +231,9 @@ export default function ChatRoom({ onStop, onlineCount }) {
                 </motion.div>
             )}
 
-            <main className="flex-1 flex flex-col lg:flex-row gap-3 sm:gap-6 p-3 sm:p-8 min-h-0 overflow-auto sm:overflow-hidden z-10">
-                <div className="flex flex-col gap-3 sm:gap-6 flex-1 min-h-0">
-                    <div className="flex-1 min-h-[200px] sm:min-h-0 rounded-2xl sm:rounded-[32px] overflow-hidden shadow-2xl">
+            <main className="flex-1 flex flex-col lg:flex-row gap-2 sm:gap-6 p-2 sm:p-6 lg:p-8 min-h-0 overflow-y-auto lg:overflow-hidden z-10">
+                <div className="flex flex-col gap-2 sm:gap-4 lg:gap-6 flex-1 min-h-0">
+                    <div className="flex-1 min-h-0 rounded-2xl sm:rounded-[32px] overflow-hidden shadow-2xl">
                         <VideoPanel
                             localStream={localStream}
                             remoteStream={remoteStream}
@@ -255,7 +255,7 @@ export default function ChatRoom({ onStop, onlineCount }) {
                     />
                 </div>
 
-                <div className="flex flex-col w-full lg:w-[380px] min-h-[250px] sm:min-h-[300px] lg:h-auto shrink-0">
+                <div className="flex flex-col w-full lg:w-[380px] min-h-[200px] lg:min-h-0 h-[280px] sm:h-[320px] lg:h-auto shrink-0 lg:shrink">
                     <ChatPanel
                         messages={messages}
                         onSend={sendMessage}
