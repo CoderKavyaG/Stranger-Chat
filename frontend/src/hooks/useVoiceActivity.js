@@ -63,3 +63,5 @@ export function useVoiceActivity(stream, isMuted) {
 
     return isSpeaking
 }
+
+
