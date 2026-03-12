@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowRight, ArrowRightCircle, Plus, Minus, ArrowUpRight, Sparkles, Send } from "lucide-react"
+import MascotCharacter from "./MascotCharacter"
 
 // Color scheme for Tailwind arbitrary values
 const COLORS = {
@@ -139,15 +140,10 @@ function Hero({ onStart }) {
           ))}
         </div>
 
-        {/* Mascot emoji — bottom center */}
-        <motion.div
-          initial={{ y: 80, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 60, delay: 0.4 }}
-          className="absolute left-1/2 -translate-x-1/2 bottom-0 pointer-events-none text-[10rem] md:text-[14rem] leading-none drop-shadow-2xl"
-        >
-          🎭
-        </motion.div>
+        {/* Mascot Character — bottom center */}
+        <MascotCharacter 
+          className="absolute left-1/2 -translate-x-1/2 bottom-0 z-20 w-[280px] md:w-[340px] lg:w-[400px] pointer-events-none"
+        />
 
         {/* 2024 badge — far right */}
         <motion.div

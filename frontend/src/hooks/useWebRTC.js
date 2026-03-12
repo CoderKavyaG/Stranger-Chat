@@ -6,6 +6,9 @@ const getIceServers = () => {
     const servers = [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun2.l.google.com:19302" },
+        { urls: "stun:stun3.l.google.com:19302" },
+        { urls: "stun:stun4.l.google.com:19302" },
     ];
 
     const username = import.meta.env.VITE_TURN_USERNAME;
@@ -49,37 +52,37 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
         }
 
         if (streamRef.current !== localStream) {
-            console.log("[WebRTC] localStream changed, updating tracks");
-            if (!streamRef.current) {
-                // First time adding stream
+            console.log("[WebRTC] localStream changed, syncing tracks...");
+            const peer = peerRef.current;
+            
+            if (!streamRef.current && localStream) {
+                // First time attaching stream
                 try {
-                    peerRef.current.addStream(localStream);
+                    peer.addStream(localStream);
                 } catch (e) {
-                    console.error("[WebRTC] addStream failed:", e);
+                    console.error("[WebRTC] first-time addStream failed:", e);
                 }
-            } else {
-                // Replace existing tracks
-                const oldTracks = streamRef.current.getTracks();
+            } else if (streamRef.current && localStream) {
+                // Replace or add individual tracks
                 const newTracks = localStream.getTracks();
-
                 newTracks.forEach(newTrack => {
-                    const oldTrack = oldTracks.find(t => t.kind === newTrack.kind);
-                    if (oldTrack) {
-                        try {
-                            peerRef.current.replaceTrack(oldTrack, newTrack, streamRef.current);
-                        } catch (e) {
-                            console.warn("[WebRTC] replaceTrack failed:", e.message);
-                            // Fallback to addTrack if replace fails
-                            try { peerRef.current.addTrack(newTrack, localStream); } catch (err) {}
+                    try {
+                        // SimplePeer internal track management
+                        const sender = peer._pc.getSenders().find(s => s.track && s.track.kind === newTrack.kind);
+                        if (sender) {
+                            sender.replaceTrack(newTrack);
+                        } else {
+                            peer.addTrack(newTrack, localStream);
                         }
-                    } else {
-                        try {
-                            peerRef.current.addTrack(newTrack, localStream);
-                        } catch (e) {
-                            console.error("[WebRTC] addTrack failed:", e);
-                        }
+                    } catch (e) {
+                        console.warn(`[WebRTC] syncTrack (${newTrack.kind}) failed:`, e.message);
                     }
                 });
+            } else if (streamRef.current && !localStream) {
+                // Stream removed
+                try {
+                    peer.removeStream(streamRef.current);
+                } catch (e) {}
             }
             streamRef.current = localStream;
         }
@@ -118,8 +121,15 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
             });
 
             peer.on("stream", (remoteStream) => {
-                console.log("[WebRTC] Received remote stream");
+                console.log("[WebRTC] Received remote stream:", remoteStream.id);
+                // Extra check to ensure audio is enabled
+                remoteStream.getAudioTracks().forEach(t => t.enabled = true);
                 onRemoteStream(remoteStream);
+            });
+
+            peer.on("track", (track, stream) => {
+                console.log(`[WebRTC] Received remote track: ${track.kind} (${track.id}) from stream ${stream.id}`);
+                onRemoteStream(stream);
             });
 
             peer.on("connect", () => {
@@ -137,7 +147,11 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
             if (signalBuffer.current.length > 0) {
                 console.log(`[WebRTC] Processing ${signalBuffer.current.length} buffered signals`);
                 signalBuffer.current.forEach(sig => {
-                    try { peer.signal(sig); } catch (e) { console.warn("[WebRTC] Signal failed:", e.message); }
+                    try { 
+                        peer.signal(sig); 
+                    } catch (e) { 
+                        console.warn("[WebRTC] Signal application failed:", e.message); 
+                    }
                 });
                 signalBuffer.current = [];
             }
