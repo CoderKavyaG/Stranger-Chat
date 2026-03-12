@@ -1,383 +1,436 @@
-import { motion } from "framer-motion"
-import { ArrowRight, Shield, Zap, Video, MessageCircle, Lock, Users, ChevronDown, Github, Eye, EyeOff, Wifi, UserX, HelpCircle, Fingerprint, ShieldCheck, Globe } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import GlowBackground from "./GlowBackground"
+import React, { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { ArrowRight, ArrowRightCircle, Plus, Minus, ArrowUpRight, Sparkles, Send } from "lucide-react"
 
-const fadeUp = (delay = 0) => ({
-    initial: { opacity: 0, y: 24 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.7, delay, ease: [0.25, 0.4, 0.25, 1] }
-})
-
-const stagger = (delay = 0) => ({
-    initial: { opacity: 0, y: 30, scale: 0.97 },
-    whileInView: { opacity: 1, y: 0, scale: 1 },
-    viewport: { once: true, margin: "-50px" },
-    transition: { duration: 0.6, delay, ease: [0.25, 0.4, 0.25, 1] }
-})
-
-function FloatingStatCard({ icon: Icon, label, value, className, delay }) {
-    return (
-        <motion.div {...stagger(delay)} className={className}>
-            <div className="glass-card rounded-2xl px-5 py-4 flex items-center gap-3.5 hover:border-white/15 transition-all duration-500 group cursor-default animate-float" style={{ animationDelay: `${delay}s` }}>
-                <div className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                    <Icon className="w-4 h-4 text-white/70" />
-                </div>
-                <div>
-                    <p className="text-[13px] font-semibold text-white/90 tracking-tight">{value}</p>
-                    <p className="text-[11px] text-white/35 font-medium">{label}</p>
-                </div>
-            </div>
-        </motion.div>
-    )
+// Color scheme for Tailwind arbitrary values
+const COLORS = {
+  orange: "#F4600C",
+  cream: "#F5F0E8",
+  dark: "#1A1A0F",
+  yellow: "#F5D000"
 }
 
-function SectionTitle({ badge, title, subtitle }) {
-    return (
-        <motion.div {...stagger(0)} className="text-center mb-12 sm:mb-16">
-            {badge && (
-                <Badge variant="outline" className="glass-card px-3 py-1 border-white/8 rounded-full text-white/50 font-medium text-[11px] mb-5 uppercase tracking-[0.15em]">
-                    {badge}
-                </Badge>
-            )}
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-[-0.03em] mb-4">{title}</h2>
-            {subtitle && <p className="text-white/30 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">{subtitle}</p>}
-        </motion.div>
-    )
-}
+// ─────────────────────────────────────────────────────────────
+// Navbar Component
+// ─────────────────────────────────────────────────────────────
+function Navbar({ onStart }) {
+  const [scrolled, setScrolled] = useState(false)
 
-export default function LandingPage({ onStart, onlineCount }) {
-    const navLinks = ["How It Works", "Features", "Safety", "FAQ"]
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50)
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
-    const features = [
-        { icon: Shield, label: "Anonymous", desc: "Zero identity, zero trace. We never collect or store personal data." },
-        { icon: Zap, label: "Instant Match", desc: "Connect with someone in under 3 seconds, anywhere worldwide." },
-        { icon: Video, label: "HD Video", desc: "Crystal clear peer-to-peer WebRTC video streaming." },
-        { icon: MessageCircle, label: "Live Chat", desc: "Rich text messaging alongside your video calls." },
-    ]
-
-    const steps = [
-        { num: "01", title: "Open drift", desc: "No accounts. No sign-ups. Just visit the site and you're ready to go.", icon: Globe },
-        { num: "02", title: "Click Start", desc: "Hit the button and our matching engine instantly pairs you with a stranger.", icon: Zap },
-        { num: "03", title: "Chat freely", desc: "Talk via text, voice, or video. Skip anytime to meet someone new.", icon: MessageCircle },
-    ]
-
-    const safetyFeatures = [
-        { icon: EyeOff, title: "No Identity Required", desc: "We never ask for your name, email, phone, or any personal information." },
-        { icon: Fingerprint, title: "No Data Stored", desc: "Conversations are not recorded or saved. When you leave, it's gone forever." },
-        { icon: ShieldCheck, title: "End-to-End Encrypted", desc: "Video and audio streams are peer-to-peer. We can't see or hear your calls." },
-        { icon: UserX, title: "Easy Exit", desc: "One click to skip or stop. You're always in full control of your experience." },
-    ]
-
-    const faqs = [
-        { q: "Is drift really free?", a: "Yes, completely free. No hidden fees, no premium plans, no ads. Just open and chat." },
-        { q: "Do I need to create an account?", a: "No. drift has zero signup, zero login. You're anonymous from the moment you visit." },
-        { q: "Is my conversation private?", a: "Yes. Video and audio are peer-to-peer (WebRTC). We can't access your streams. Nothing is recorded." },
-        { q: "Can I use drift on mobile?", a: "Yes. drift is fully responsive and works on any modern mobile browser — iOS and Android." },
-        { q: "What if someone is inappropriate?", a: "You can instantly skip to the next person with one click. We're working on adding reporting features." },
-        { q: "How does matching work?", a: "When you click Start, you enter a queue. As soon as another person is waiting, you're instantly connected." },
-    ]
-
-    return (
-        <div className="min-h-screen flex flex-col relative overflow-hidden text-white">
-            <GlowBackground />
-
-            {/* ─── Sticky Navbar ──────────────────────────────────────── */}
-            <motion.header
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="w-full z-30 sticky top-0 bg-[#030303]/60 backdrop-blur-2xl border-b border-white/[0.04]"
-            >
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
-                    <span className="text-[18px] sm:text-[20px] font-extrabold tracking-[-0.04em] bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent select-none">
-                        drift<span className="text-indigo-400">.</span>
-                    </span>
-
-                    <nav className="hidden lg:flex items-center gap-1">
-                        {navLinks.map((link) => (
-                            <a
-                                key={link}
-                                href={`#${link.toLowerCase().replace(/\s+/g, '-')}`}
-                                className="px-4 py-2 text-[13px] font-medium text-white/40 hover:text-white/90 rounded-lg hover:bg-white/[0.04] transition-all duration-300"
-                            >
-                                {link}
-                            </a>
-                        ))}
-                    </nav>
-
-                    <div className="flex items-center gap-2 sm:gap-3">
-                        <a href="https://github.com/CoderKavyaG/Stranger-Chat" target="_blank" rel="noreferrer" className="text-white/25 hover:text-white/60 transition-colors p-2">
-                            <Github className="w-[18px] h-[18px]" />
-                        </a>
-                        <Button
-                            onClick={onStart}
-                            className="bg-white/10 text-white border border-white/10 hover:bg-white/15 hover:border-white/20 rounded-full px-4 sm:px-5 h-8 sm:h-9 text-[12px] sm:text-[13px] font-semibold backdrop-blur-sm transition-all"
-                        >
-                            Enter Chat
-                        </Button>
-                    </div>
-                </div>
-            </motion.header>
-
-            {/* ─── Hero ────────────────────────────────────────────────── */}
-            <section className="flex flex-col items-center justify-center px-4 sm:px-6 z-10 relative py-20 sm:py-28 lg:py-36 min-h-[85vh] sm:min-h-[90vh]">
-                <div className="max-w-4xl mx-auto text-center">
-
-                    <motion.div {...fadeUp(0.1)} className="mb-6 sm:mb-8">
-                        <Badge variant="outline" className="glass-card px-3 sm:px-4 py-1.5 border-white/8 rounded-full text-white/70 font-medium text-[11px] sm:text-[12px] gap-2">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-                            </span>
-                            {onlineCount > 0 ? `${onlineCount.toLocaleString()} people drifting now` : "Users connecting now"}
-                        </Badge>
-                    </motion.div>
-
-                    <motion.h1
-                        {...fadeUp(0.2)}
-                        className="text-[34px] sm:text-5xl md:text-7xl lg:text-[82px] font-extrabold tracking-[-0.035em] leading-[0.95] sm:leading-[0.92] mb-5 sm:mb-7"
-                    >
-                        Talk to Strangers.
-                        <br />
-                        <span className="bg-gradient-to-r from-white/50 via-white/25 to-white/50 bg-clip-text text-transparent">
-                            Stay Anonymous.
-                        </span>
-                    </motion.h1>
-
-                    <motion.p
-                        {...fadeUp(0.35)}
-                        className="text-white/40 text-sm sm:text-base md:text-lg lg:text-xl max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed font-medium px-2"
-                    >
-                        Instantly connect with people around the world through text, voice, and video — no sign up required.
-                    </motion.p>
-
-                    <motion.div {...fadeUp(0.5)} className="flex flex-col items-center gap-5 mb-6">
-                        <Button
-                            onClick={onStart}
-                            size="lg"
-                            className="bg-white text-[#0a0a0a] hover:bg-white/90 px-10 py-7 text-[15px] font-bold rounded-full transition-all hover:scale-[1.03] active:scale-[0.97] shadow-[0_0_60px_rgba(255,255,255,0.08)] hover:shadow-[0_0_80px_rgba(255,255,255,0.15)]"
-                        >
-                            Start Chatting Now
-                            <ArrowRight className="ml-1 w-4.5 h-4.5" />
-                        </Button>
-                        <a
-                            href="#how-it-works"
-                            className="text-white/35 text-sm font-medium hover:text-white/60 transition-colors flex items-center gap-1.5 group"
-                        >
-                            See how it works
-                            <ChevronDown className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" />
-                        </a>
-                    </motion.div>
-
-                    <motion.div {...fadeUp(0.6)} className="flex items-center justify-center gap-3 sm:gap-5 text-[10px] sm:text-[11px] text-white/20 font-mono uppercase tracking-[0.12em] sm:tracking-[0.15em]">
-                        <span className="flex items-center gap-1.5">
-                            <Lock className="w-3 h-3" /> No Login
-                        </span>
-                        <Separator orientation="vertical" className="h-3 bg-white/10" />
-                        <span>No Signup</span>
-                        <Separator orientation="vertical" className="h-3 bg-white/10" />
-                        <span>Secure P2P</span>
-                    </motion.div>
-                </div>
-
-                {/* Floating Glass Cards — desktop only */}
-                <div className="absolute inset-0 pointer-events-none overflow-hidden hidden lg:block">
-                    <FloatingStatCard icon={Users} value={onlineCount > 0 ? `${onlineCount.toLocaleString()} Live` : "12,430 Live"} label="Active Users" className="absolute top-[20%] left-[5%] pointer-events-auto" delay={0.9} />
-                    <FloatingStatCard icon={Lock} value="End-to-End" label="Encrypted" className="absolute top-[35%] right-[4%] pointer-events-auto" delay={1.1} />
-                    <FloatingStatCard icon={Zap} value="< 3 Seconds" label="Instant Match" className="absolute bottom-[20%] left-[8%] pointer-events-auto" delay={1.3} />
-                </div>
-            </section>
-
-            {/* ─── How It Works ───────────────────────────────────────── */}
-            <section id="how-it-works" className="relative z-10 py-20 sm:py-28 px-4 sm:px-6">
-                <div className="max-w-5xl mx-auto">
-                    <SectionTitle
-                        badge="How It Works"
-                        title="Three steps. Zero friction."
-                        subtitle="No downloads, no registration, no hassle. Just pure connection."
-                    />
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-                        {steps.map(({ num, title, desc, icon: Icon }, i) => (
-                            <motion.div key={num} {...stagger(0.1 + i * 0.15)}>
-                                <div className="glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 h-full hover:border-white/15 transition-all duration-500 group relative overflow-hidden">
-                                    <span className="absolute top-5 right-6 text-[64px] sm:text-[80px] font-black text-white/[0.03] leading-none select-none tracking-tighter">{num}</span>
-                                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white/[0.06] flex items-center justify-center mb-5 sm:mb-6 group-hover:bg-white/10 transition-colors">
-                                        <Icon className="w-5 h-5 text-white/70" />
-                                    </div>
-                                    <h3 className="font-bold text-white/90 text-base sm:text-lg mb-2">{title}</h3>
-                                    <p className="text-[13px] sm:text-sm text-white/30 leading-relaxed">{desc}</p>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* ─── Features ───────────────────────────────────────────── */}
-            <section id="features" className="relative z-10 py-20 sm:py-28 px-4 sm:px-6">
-                <div className="max-w-6xl mx-auto">
-                    <SectionTitle
-                        badge="Features"
-                        title="Everything you need. Nothing you don't."
-                        subtitle="Built for simplicity, designed for privacy, engineered for speed."
-                    />
-
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-                        {features.map(({ icon: Icon, label, desc }, i) => (
-                            <motion.div key={label} {...stagger(0.05 + i * 0.1)}>
-                                <Card className="glass-card p-4 sm:p-6 rounded-2xl hover:border-white/15 transition-all duration-500 group h-full bg-transparent border-white/[0.06]">
-                                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white/[0.05] flex items-center justify-center mb-3 sm:mb-5 group-hover:bg-white/[0.08] transition-colors">
-                                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white/70" />
-                                    </div>
-                                    <h3 className="font-bold text-white/90 mb-1 sm:mb-1.5 text-[13px] sm:text-[15px]">{label}</h3>
-                                    <p className="text-[11px] sm:text-[13px] text-white/30 leading-relaxed font-medium">{desc}</p>
-                                </Card>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* ─── Safety ─────────────────────────────────────────────── */}
-            <section id="safety" className="relative z-10 py-20 sm:py-28 px-4 sm:px-6">
-                <div className="max-w-5xl mx-auto">
-                    <SectionTitle
-                        badge="Safety"
-                        title="Your privacy is non-negotiable."
-                        subtitle="drift is built from the ground up with your safety and anonymity as the top priority."
-                    />
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                        {safetyFeatures.map(({ icon: Icon, title, desc }, i) => (
-                            <motion.div key={title} {...stagger(0.05 + i * 0.1)}>
-                                <div className="glass-card rounded-2xl p-5 sm:p-7 h-full hover:border-white/15 transition-all duration-500 group flex gap-4 sm:gap-5">
-                                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white/[0.05] flex items-center justify-center shrink-0 group-hover:bg-white/10 transition-colors">
-                                        <Icon className="w-5 h-5 text-white/70" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-white/90 mb-1.5 text-[14px] sm:text-[15px]">{title}</h3>
-                                        <p className="text-[12px] sm:text-[13px] text-white/30 leading-relaxed">{desc}</p>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* ─── FAQ ────────────────────────────────────────────────── */}
-            <section id="faq" className="relative z-10 py-20 sm:py-28 px-4 sm:px-6">
-                <div className="max-w-3xl mx-auto">
-                    <SectionTitle
-                        badge="FAQ"
-                        title="Got questions?"
-                        subtitle="Here are answers to the most common ones."
-                    />
-
-                    <div className="flex flex-col gap-3 sm:gap-4">
-                        {faqs.map(({ q, a }, i) => (
-                            <motion.div key={i} {...stagger(0.05 + i * 0.08)}>
-                                <div className="glass-card rounded-2xl p-5 sm:p-6 hover:border-white/15 transition-all duration-500">
-                                    <div className="flex items-start gap-3 sm:gap-4">
-                                        <HelpCircle className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
-                                        <div>
-                                            <h3 className="font-semibold text-white/90 text-[13px] sm:text-[15px] mb-2">{q}</h3>
-                                            <p className="text-[12px] sm:text-[13px] text-white/30 leading-relaxed">{a}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* ─── CTA Banner ─────────────────────────────────────────── */}
-            <section className="relative z-10 py-20 sm:py-28 px-4 sm:px-6">
-                <motion.div {...stagger(0)} className="max-w-4xl mx-auto text-center">
-                    <div className="glass-card rounded-3xl p-8 sm:p-14 relative overflow-hidden">
-                        {/* Ambient glow inside card */}
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[200px] bg-indigo-500/10 blur-[100px] rounded-full" />
-
-                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mb-4 relative">
-                            Ready to drift?
-                        </h2>
-                        <p className="text-white/30 text-sm sm:text-base mb-8 max-w-md mx-auto relative">
-                            Jump in now. No signup, no downloads, no strings attached.
-                        </p>
-                        <Button
-                            onClick={onStart}
-                            size="lg"
-                            className="bg-white text-[#0a0a0a] hover:bg-white/90 px-10 py-7 text-[15px] font-bold rounded-full transition-all hover:scale-[1.03] active:scale-[0.97] shadow-[0_0_60px_rgba(255,255,255,0.08)] relative"
-                        >
-                            Start Chatting Now
-                            <ArrowRight className="ml-1 w-4.5 h-4.5" />
-                        </Button>
-                    </div>
-                </motion.div>
-            </section>
-
-            {/* ─── Footer ─────────────────────────────────────────────── */}
-            <footer className="relative z-10 w-full border-t border-white/[0.04] mt-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
-                    {/* Top row */}
-                    <div className="flex flex-col md:flex-row justify-between items-start gap-10 mb-10 sm:mb-14">
-                        {/* Brand column */}
-                        <div className="max-w-xs">
-                            <span className="text-[22px] font-extrabold tracking-[-0.04em] bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent select-none block mb-3">
-                                drift<span className="text-indigo-400">.</span>
-                            </span>
-                            <p className="text-white/25 text-[13px] leading-relaxed">
-                                Anonymous video chat for the curious. No accounts, no tracking — just real conversations.
-                            </p>
-                        </div>
-
-                        {/* Link columns */}
-                        <div className="flex gap-12 sm:gap-16">
-                            <div>
-                                <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-[0.15em] mb-4">Navigate</h4>
-                                <div className="flex flex-col gap-2.5">
-                                    <a href="#how-it-works" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">How It Works</a>
-                                    <a href="#features" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">Features</a>
-                                    <a href="#safety" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">Safety</a>
-                                    <a href="#faq" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">FAQ</a>
-                                </div>
-                            </div>
-                            <div>
-                                <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-[0.15em] mb-4">Connect</h4>
-                                <div className="flex flex-col gap-2.5">
-                                    <a href="https://github.com/CoderKavyaG/Stranger-Chat" target="_blank" rel="noreferrer" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">GitHub</a>
-                                    <a href="https://x.com/goelsahhab" target="_blank" rel="noreferrer" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">Twitter / X</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Divider */}
-                    <div className="w-full h-px bg-white/[0.05] mb-6" />
-
-                    {/* Bottom row */}
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-                        <p className="text-white/15 text-[11px] sm:text-[12px] font-medium">
-                            © 2025 drift — Built for the curious.
-                        </p>
-                        <div className="flex items-center gap-4 text-white/15 text-[11px] sm:text-[12px]">
-                            <span className="flex items-center gap-1.5">
-                                <Lock className="w-3 h-3" /> Peer-to-Peer
-                            </span>
-                            <Separator orientation="vertical" className="h-3 bg-white/8" />
-                            <span>WebRTC</span>
-                            <Separator orientation="vertical" className="h-3 bg-white/8" />
-                            <span>Open Source</span>
-                        </div>
-                    </div>
-                </div>
-            </footer>
+  return (
+    <header
+      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
+        scrolled ? "backdrop-blur-md bg-black/80 shadow-lg" : "bg-transparent py-4"
+      }`}
+    >
+      <div className="max-w-[1400px] mx-auto px-6 py-4 flex items-center justify-between">
+        {/* Logo */}
+        <div className="font-['Anton'] text-[24px] uppercase tracking-wide text-[#F5F0E8]">
+          drift
         </div>
-    )
+
+        {/* Links */}
+        <nav className="hidden md:flex items-center gap-8">
+          {["Start", "Features", "How It Works", "Community", "Pricing"].map((item) => (
+            <a
+              key={item}
+              href={`#${item.toLowerCase().replace(/\s+/g, "-")}`}
+              className="text-[#F5F0E8] text-sm uppercase tracking-widest font-semibold hover:text-[#F4600C] transition-colors relative group"
+            >
+              <span className="relative z-10">{item}</span>
+              <span className="absolute left-0 bottom-0 w-0 h-[2px] bg-[#F4600C] transition-all duration-300 group-hover:w-full" />
+            </a>
+          ))}
+        </nav>
+
+        {/* CTA */}
+        <button
+          onClick={onStart}
+          className="bg-[#1A1A0F] text-[#F5F0E8] px-6 py-2 rounded-full font-bold uppercase text-sm tracking-widest hover:bg-[#F4600C] hover:text-[#1A1A0F] transition-all duration-300"
+        >
+          START DRIFTING
+        </button>
+      </div>
+    </header>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// Hero Section
+// ─────────────────────────────────────────────────────────────
+function Hero({ onStart }) {
+  // Staggered text animation
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  }
+
+  const item = {
+    hidden: { opacity: 0, y: 50 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
+  }
+
+  return (
+    <section 
+      className="relative w-full min-h-[100svh] flex flex-col justify-between overflow-hidden"
+      style={{
+        backgroundColor: COLORS.orange,
+        backgroundImage: `repeating-conic-gradient(from 0deg, rgba(255,255,255,0.05) 0deg 10deg, transparent 10deg 20deg)`
+      }}
+    >
+      {/* ── Top spacer for navbar ── */}
+      <div className="h-20 shrink-0" />
+
+      {/* ── Badge pill ── */}
+      <div className="relative z-10 flex justify-center mt-8 px-4">
+        <span className="text-[#F5F0E8] font-bold tracking-[0.3em] uppercase text-xs md:text-sm bg-[#1A1A0F] px-6 py-2 rounded-full">
+          Step into the future of chat
+        </span>
+      </div>
+
+      {/* ── Main headline ── */}
+      <div className="relative z-10 w-full px-4 md:px-8 mt-6 text-center">
+        <h1 className="font-['Anton'] uppercase w-full leading-[1] text-[clamp(56px,12vw,170px)]">
+          <motion.span
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+            className="block text-[#F5F0E8]"
+          >
+            ANONYMOUS
+          </motion.span>
+          <motion.span
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+            className="block text-[#1A1A0F] mt-2 md:mt-4"
+          >
+            VIDEO CHAT
+          </motion.span>
+        </h1>
+      </div>
+
+      {/* ── Bottom row: user-type selectors | mascot emoji | 2024 badge ── */}
+      <div className="relative z-10 flex items-end justify-between w-full px-6 md:px-10 pb-10 mt-auto">
+
+        {/* User Type Selectors — far left */}
+        <div className="flex flex-col gap-2 shrink-0">
+          {["Solo", "Friends", "Groups"].map((type, idx) => (
+            <button 
+              key={type}
+              onClick={type !== "Groups" ? onStart : undefined}
+              className={`flex items-center justify-between px-6 py-3 rounded-full font-bold uppercase tracking-wider text-sm w-[160px] border border-[#1A1A0F] transition-all ${
+                idx === 1 
+                  ? "bg-[#1A1A0F] text-[#F5F0E8]" 
+                  : "bg-transparent text-[#1A1A0F] hover:bg-[#1A1A0F] hover:text-[#F5F0E8]"
+              }`}
+            >
+              {type}
+              {idx !== 1 && <ArrowRight className="w-4 h-4 ml-2 shrink-0" />}
+            </button>
+          ))}
+        </div>
+
+        {/* Mascot emoji — bottom center */}
+        <motion.div
+          initial={{ y: 80, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 60, delay: 0.4 }}
+          className="absolute left-1/2 -translate-x-1/2 bottom-0 pointer-events-none text-[10rem] md:text-[14rem] leading-none drop-shadow-2xl"
+        >
+          🎭
+        </motion.div>
+
+        {/* 2024 badge — far right */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.2 }}
+          transition={{ duration: 1, delay: 0.5 }}
+          className="font-['Anton'] text-[#F5F0E8] text-[8vw] leading-none select-none shrink-0"
+        >
+          2024
+        </motion.div>
+
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// Why Section
+// ─────────────────────────────────────────────────────────────
+function WhySection() {
+  const [expanded, setExpanded] = useState(1);
+  
+  const features = [
+    { id: 0, title: "REAL-TIME MATCHING", desc: "Instantly connect with people worldwide with zero latency WebRTC technology." },
+    { id: 1, title: "END-TO-END ENCRYPTION", desc: "Your video and audio streams are P2P encrypted. We can't see or hear your calls, and nothing is ever recorded." },
+    { id: 2, title: "GLOBAL COMMUNITY", desc: "Meet fascinating individuals from entirely different cultures, simply with the click of a button." }
+  ];
+
+  return (
+    <section id="how-it-works" className="relative w-full py-24 px-6 md:px-10 overflow-hidden" style={{ backgroundColor: COLORS.cream }}>
+      {/* Background Watermark */}
+      <div className="absolute top-[10%] left-0 w-full text-center font-['Anton'] text-[25vw] text-[#1A1A0F]/[0.03] select-none pointer-events-none leading-none z-0">
+        DRIFT
+      </div>
+
+      <div className="max-w-[1400px] mx-auto relative z-10 flex flex-col xl:flex-row gap-16 xl:gap-8 items-start justify-between">
+        
+        {/* Left Side: Headline & Accordion */}
+        <div className="w-full xl:w-[60%] flex flex-col">
+          <h2 className="font-['Anton'] text-[clamp(60px,8vw,120px)] text-[#1A1A0F] uppercase leading-[1.1] tracking-tight mb-16 relative z-10">
+            Why the future of <br/>
+            <span style={{ color: COLORS.orange }}>anonymous chat</span> <br/>
+            matters!
+          </h2>
+
+          <div className="flex flex-col gap-4 w-full max-w-2xl">
+            {features.map((item) => (
+              <div 
+                key={item.id} 
+                className={`overflow-hidden transition-all duration-500 rounded-3xl border border-[#1A1A0F]/20 ${expanded === item.id ? "bg-[#1A1A0F] text-[#F5F0E8]" : "bg-transparent text-[#1A1A0F]"}`}
+              >
+                <button 
+                  onClick={() => setExpanded(expanded === item.id ? -1 : item.id)}
+                  className="w-full px-6 py-5 flex items-center justify-start gap-4 font-bold text-lg md:text-xl uppercase tracking-wider"
+                >
+                  {expanded === item.id ? <Minus className="w-6 h-6 shrink-0" /> : <Plus className="w-6 h-6 shrink-0" />}
+                  {item.title}
+                </button>
+                <AnimatePresence>
+                  {expanded === item.id && (
+                    <motion.div 
+                      key="content"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="px-6 pb-6 pl-[3.5rem] font-medium text-sm md:text-base leading-relaxed opacity-80"
+                    >
+                      {item.desc}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Side: Floating Widget */}
+        <div className="w-full xl:w-[35%] flex justify-center xl:justify-end xl:mt-24">
+          <motion.div 
+            initial={{ rotate: -5, y: 50 }}
+            whileInView={{ rotate: -2, y: 0 }}
+            viewport={{ once: true }}
+            className="bg-[#F4600C] text-[#F5F0E8] p-8 md:p-10 rounded-3xl shadow-[20px_20px_0px_#1A1A0F] w-full max-w-md flex flex-col gap-8"
+          >
+            <div className="flex justify-between items-start border-b border-[#F5F0E8]/30 pb-6">
+              <span className="text-sm font-bold uppercase tracking-widest">Anonymous<br/>Connections</span>
+              <span className="font-['Anton'] text-5xl">100%</span>
+            </div>
+            
+            <div className="flex justify-between items-end pt-2">
+              <div className="flex border border-[#F5F0E8]/30 rounded-full px-4 py-2">
+                <span className="w-3 h-3 bg-green-400 rounded-full animate-pulse mr-2 mt-1"></span>
+                <span className="text-xs font-bold uppercase tracking-widest leading-none mt-0.5">Live Now</span>
+              </div>
+              <div className="text-right">
+                <span className="block text-xs uppercase tracking-widest mb-1 opacity-80">Daily Active Users</span>
+                <span className="font-['Anton'] text-6xl leading-none">24.5K</span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// Stats Section
+// ─────────────────────────────────────────────────────────────
+function StatsSection() {
+  return (
+    <section id="community" className="w-full py-24 px-6 md:px-10 overflow-hidden" style={{ backgroundColor: COLORS.dark }}>
+      <div className="max-w-[1400px] mx-auto">
+        
+        {/* Top Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-6">
+          <div className="bg-[#F5F0E8]/10 text-[#F5F0E8] px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-[0.2em]">
+            PLATFORM STATS
+          </div>
+          <p className="text-[#F5F0E8]/70 text-right max-w-sm font-medium leading-relaxed text-sm">
+            We're building a network where anonymity breeds authentic interaction. No filters, no algorithms, just people.
+          </p>
+        </div>
+
+        {/* Big Headline */}
+        <h2 className="font-['Anton'] text-[clamp(50px,8vw,120px)] text-[#F5F0E8] uppercase leading-[1.1] tracking-tight mb-20 relative z-10">
+          FUTURE OF ANONYMOUS CHAT <br/>
+          <span style={{ color: COLORS.orange }}>BY THE NUMBERS</span>
+        </h2>
+
+        {/* Floating Cards Area */}
+        <div className="relative w-full h-[400px] md:h-[500px] flex items-center justify-center">
+          
+          <motion.div 
+            animate={{ y: [-15, 15, -15] }} 
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute left-[5%] md:left-[15%] top-10 bg-white text-[#1A1A0F] p-8 md:p-12 rounded-[2rem] shadow-2xl z-20 w-[240px] md:w-[320px] -rotate-3 border border-black/5"
+          >
+            <h3 className="font-['Anton'] text-7xl md:text-8xl mb-2">1M+</h3>
+            <p className="font-bold uppercase tracking-widest text-sm text-[#1A1A0F]/60">Active Users</p>
+          </motion.div>
+
+          <motion.div 
+            animate={{ y: [15, -15, 15] }} 
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            className="absolute right-[5%] md:right-[20%] bottom-10 bg-[#F5D000] text-[#1A1A0F] p-8 md:p-12 rounded-[2rem] shadow-2xl z-10 w-[220px] md:w-[280px] rotate-6 border border-black/5"
+          >
+            <div className="flex items-start">
+              <h3 className="font-['Anton'] text-7xl md:text-8xl mb-2">99</h3>
+              <span className="font-bold text-2xl mt-4 ml-1">%</span>
+            </div>
+            <p className="font-bold uppercase tracking-widest text-sm text-[#1A1A0F]/60">SLA Uptime</p>
+          </motion.div>
+
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// Features Minimal Section
+// ─────────────────────────────────────────────────────────────
+function FeaturesSection() {
+  return (
+    <section className="w-full py-24 px-6 md:px-10" style={{ backgroundColor: COLORS.cream }}>
+      <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row gap-12">
+        
+        <div className="w-full md:w-[55%] flex flex-col pr-0 md:pr-10">
+          <div className="flex items-center gap-4 mb-8">
+            <Sparkles className="w-10 h-10" style={{ color: COLORS.orange }} />
+            <span className="font-bold uppercase tracking-widest text-sm text-[#1A1A0F]">Experience</span>
+          </div>
+          
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#1A1A0F] leading-[1.1] mb-8 tracking-tight">
+            Connecting People with Cutting-Edge Technology
+          </h2>
+          
+          <p className="text-lg md:text-xl text-[#1A1A0F]/70 leading-relaxed font-medium">
+            Drift utilizes WebRTC for unbeatably low latency peer-to-peer connections. There is no middleman servers storing your video or audio, resulting in a perfectly private, seamless matching experience.
+          </p>
+        </div>
+
+        <div className="w-full md:w-[45%]">
+          {/* Empty space for design balance as per reference */}
+        </div>
+        
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// Highlights Rows Section
+// ─────────────────────────────────────────────────────────────
+function HighlightsSection() {
+  const rows = [
+    { title: "PRIVACY FIRST", desc: "No data logging policy", actionText: "Secure →" },
+    { title: "LIVE EVENTS", desc: "Join global anonymous rooms", actionText: "Explore →" },
+    { title: "NEWSLETTER", desc: "Get updates on new features", isInput: true }
+  ];
+
+  return (
+    <section id="features" className="w-full py-24 px-6 md:px-10" style={{ backgroundColor: COLORS.dark }}>
+      <div className="max-w-[1400px] mx-auto">
+        <div className="flex flex-col">
+          {rows.map((row, idx) => (
+            <div 
+              key={idx} 
+              className="group flex flex-col md:flex-row items-start md:items-center justify-between py-10 border-b border-white/10 hover:bg-white/[0.02] hover:border-l-4 hover:border-l-[#F4600C] transition-all px-0 hover:px-6 cursor-pointer"
+            >
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-16 w-full md:w-auto mb-6 md:mb-0">
+                <h3 className="font-['Anton'] text-4xl md:text-6xl text-[#F5F0E8] uppercase tracking-wide group-hover:text-[#F4600C] transition-colors">{row.title}</h3>
+                <span className="text-[#F5F0E8]/50 text-lg font-medium">{row.desc}</span>
+              </div>
+              
+              {row.isInput ? (
+                <div className="relative w-full md:w-[320px]">
+                  <input 
+                    type="email" 
+                    placeholder="Enter email..." 
+                    className="w-full bg-transparent border border-white/20 rounded-full py-4 pl-6 pr-14 text-[#F5F0E8] placeholder:text-white/30 outline-none focus:border-[#F4600C] transition-colors"
+                  />
+                  <button className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#F5F0E8] rounded-full flex items-center justify-center hover:bg-[#F4600C] transition-colors group/btn">
+                    <Send className="w-4 h-4 text-[#1A1A0F] group-hover/btn:text-white" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-[#F4600C] font-bold uppercase tracking-widest text-sm opacity-0 group-hover:opacity-100 transition-opacity translate-x-4 group-hover:translate-x-0 duration-300">
+                  {row.actionText}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// Footer
+// ─────────────────────────────────────────────────────────────
+function Footer() {
+  return (
+    <footer className="w-full py-12 px-6 md:px-10 border-t border-white/5" style={{ backgroundColor: COLORS.dark }}>
+      <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="font-['Anton'] text-[24px] uppercase tracking-wide text-[#F5F0E8]">
+          drift
+        </div>
+        
+        <nav className="flex items-center gap-6">
+          {["Terms", "Privacy", "Contact", "Twitter"].map((link) => (
+            <a key={link} href="#" className="text-white/40 hover:text-[#F4600C] text-xs font-bold uppercase tracking-widest transition-colors">
+              {link}
+            </a>
+          ))}
+        </nav>
+        
+        <div className="text-white/20 text-xs font-medium">
+          © 2024 DRIFT INC. ALL RIGHTS RESERVED.
+        </div>
+      </div>
+    </footer>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// Main LandingPage Component
+// ─────────────────────────────────────────────────────────────
+export default function LandingPage({ onStart, onlineCount }) {
+  // We apply global typography via container class text styling
+  return (
+    <div className="w-full min-h-screen font-sans selection:bg-[#F4600C] selection:text-[#F5F0E8] scroll-smooth origin-top">
+      <Navbar onStart={onStart} />
+      <Hero onStart={onStart} />
+      <WhySection />
+      <StatsSection />
+      <FeaturesSection />
+      <HighlightsSection />
+      <Footer />
+    </div>
+  )
 }
