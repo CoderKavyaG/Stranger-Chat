@@ -151,6 +151,20 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
                 });
             });
 
+            // Fallback for browsers/scenarios where only 'stream' event fires
+            peer.on("stream", (remoteStream) => {
+                console.log("[WebRTC] Received remote stream (fallback):", remoteStream.id);
+                if (!remoteStreams.has(remoteStream.id)) {
+                    remoteStreams.set(remoteStream.id, true);
+                    remoteStream.getAudioTracks().forEach(t => {
+                        console.log("[WebRTC] Enabling audio track from stream event");
+                        t.enabled = true;
+                    });
+                    onRemoteStream(remoteStream);
+                    console.log("[WebRTC] Emitted remote stream from fallback handler");
+                }
+            });
+
             peer.on("connect", () => {
                 console.log("[WebRTC] Peer connection established");
             });
