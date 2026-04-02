@@ -130,25 +130,25 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
             const remoteStreams = new Map();
             peer.on("track", (track, stream) => {
                 console.log(`[WebRTC] Received remote track: ${track.kind} from stream ${stream.id}`);
-                // Collect all tracks from the same stream
+                
+                // If this is a new stream, emit it
                 if (!remoteStreams.has(stream.id)) {
-                    remoteStreams.set(stream.id, stream);
-                    // Enable audio tracks
-                    stream.getAudioTracks().forEach(t => t.enabled = true);
-                    // Only emit the first stream we receive
-                    if (remoteStreams.size === 1) {
-                        onRemoteStream(stream);
-                    }
+                    remoteStreams.set(stream.id, true);
+                    onRemoteStream(stream);
+                    console.log(`[WebRTC] Emitted new remote stream: ${stream.id}`);
                 }
-            });
-
-            // Fallback: Use stream event for compatibility (older browsers)
-            peer.on("stream", (remoteStream) => {
-                console.log("[WebRTC] Received remote stream:", remoteStream.id);
-                remoteStream.getAudioTracks().forEach(t => t.enabled = true);
-                if (remoteStreams.size === 0) {
-                    onRemoteStream(remoteStream);
-                }
+                
+                // Always ensure audio tracks are enabled
+                stream.getAudioTracks().forEach((t, idx) => {
+                    console.log(`[WebRTC] Audio track ${idx}: enabled=${t.enabled} (setting to true)`);
+                    t.enabled = true;
+                });
+                
+                // Log all tracks on the stream
+                console.log(`[WebRTC] Stream ${stream.id} now has:`, {
+                    audio: stream.getAudioTracks().length,
+                    video: stream.getVideoTracks().length
+                });
             });
 
             peer.on("connect", () => {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Users, Github, X, AlertTriangle } from "lucide-react"
+import { Users, Github, X, AlertTriangle, Loader2 } from "lucide-react"
 import { useSocket } from "../hooks/useSocket"
 import { useWebRTC } from "../hooks/useWebRTC"
 import { useChat } from "../hooks/useChat"
