@@ -39,6 +39,7 @@ export default function ChatRoom({ onStop, onlineCount }) {
     // Use refs so callbacks can access latest values without circular deps
     const destroyPeerRef = useRef(null)
     const emitRef = useRef(null)
+    const fetchMediaRef = useRef(null)
 
     const clearWaitingTimer = () => {
         if (waitingTimerRef.current) {
@@ -65,13 +66,15 @@ export default function ChatRoom({ onStop, onlineCount }) {
         setLocalStream(null)
         
         // Fetch fresh media, then when done, set roomId to trigger peer creation
-        fetchMedia(null, null).then(() => {
-            setRoomId(rId)
-            setIsInitiator(initiator)
-        }).catch(err => {
-            console.error("[ChatRoom] Media fetch failed:", err)
-        })
-    }, [clearMessages, localStream, fetchMedia])
+        if (fetchMediaRef.current) {
+            fetchMediaRef.current(null, null).then(() => {
+                setRoomId(rId)
+                setIsInitiator(initiator)
+            }).catch(err => {
+                console.error("[ChatRoom] Media fetch failed:", err)
+            })
+        }
+    }, [clearMessages, localStream])
 
     const handlePartnerLeft = useCallback(() => {
         // Auto-reconnect: clean up and immediately find new partner
@@ -117,6 +120,7 @@ export default function ChatRoom({ onStop, onlineCount }) {
     // Keep refs in sync
     useEffect(() => { destroyPeerRef.current = destroyPeer }, [destroyPeer])
     useEffect(() => { emitRef.current = emit }, [emit])
+    useEffect(() => { fetchMediaRef.current = fetchMedia }, [fetchMedia])
 
     // Fetch media with specific device IDs
     const fetchMedia = useCallback(async (aId, vId) => {
