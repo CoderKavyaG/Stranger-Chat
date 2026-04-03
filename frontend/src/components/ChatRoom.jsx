@@ -51,7 +51,41 @@ export default function ChatRoom({ onStop, onlineCount }) {
         }
     }
 
-    // Socket event handlers — use refs to avoid forward-reference issues
+    // DEFINE FETCMEDIA FIRST - before handlers that use it
+    const fetchMedia = useCallback(async (aId, vId) => {
+        try {
+            const constraints = {
+                video: vId
+                    ? { deviceId: { exact: vId }, width: { ideal: 720 }, height: { ideal: 480 } }
+                    : { width: { ideal: 720 }, height: { ideal: 480 } },
+                audio: aId ? { deviceId: { exact: aId } } : true,
+            }
+            const stream = await navigator.mediaDevices.getUserMedia(constraints)
+
+            // Stop old tracks 
+            setLocalStream(prevStream => {
+                if (prevStream) {
+                    prevStream.getTracks().forEach(t => t.stop())
+                }
+                return stream
+            })
+
+            stream.getAudioTracks().forEach(t => t.enabled = !isMuted)
+            stream.getVideoTracks().forEach(t => t.enabled = !isCamOff)
+
+            setMediaError(null)
+            return stream
+        } catch (err) {
+            setMediaError(
+                err.name === "NotAllowedError"
+                    ? "Camera/mic permissions were denied. You can still use text chat."
+                    : "We couldn't access your camera at the requested resolution. Try refreshing or check device settings."
+            )
+            throw err
+        }
+    }, [isMuted, isCamOff])
+
+    // Socket event handlers — now can use fetchMedia directly
     const handleMatched = useCallback(({ roomId: rId, initiator }) => {
         clearWaitingTimer()
         setAppState("chatting")
@@ -60,24 +94,22 @@ export default function ChatRoom({ onStop, onlineCount }) {
         setWaitingTooLong(false)
         setRemoteStream(null)
         setWebrtcError(null)
-        if (clearMessagesRef.current) clearMessagesRef.current()
+        clearMessages()
         
         // Ensure fresh stream before creating peer connection
-        if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach(t => t.stop())
+        if (localStream) {
+            localStream.getTracks().forEach(t => t.stop())
         }
         setLocalStream(null)
         
-        // Fetch fresh media, then when done, set roomId to trigger peer creation
-        if (fetchMediaRef.current) {
-            fetchMediaRef.current(null, null).then(() => {
-                setRoomId(rId)
-                setIsInitiator(initiator)
-            }).catch(err => {
-                console.error("[ChatRoom] Media fetch failed:", err)
-            })
-        }
-    }, [])
+        // Fetch fresh media, then set roomId to trigger peer creation
+        fetchMedia(null, null).then(() => {
+            setRoomId(rId)
+            setIsInitiator(initiator)
+        }).catch(err => {
+            console.error("[ChatRoom] Media fetch failed:", err)
+        })
+    }, [fetchMedia, localStream, clearMessages])
 
     const handlePartnerLeft = useCallback(() => {
         // Auto-reconnect: clean up and immediately find new partner
@@ -88,14 +120,14 @@ export default function ChatRoom({ onStop, onlineCount }) {
         setPartnerLeft(false)
         setAppState("waiting")
         setStatusText("waiting")
-        if (clearMessagesRef.current) clearMessagesRef.current()
+        clearMessages()
         if (emitRef.current) emitRef.current("leave_room")
         setShowSkipOverlay(true)
         setTimeout(() => {
             setShowSkipOverlay(false)
             if (emitRef.current) emitRef.current("find_partner")
         }, 800)
-    }, [])
+    }, [clearMessages])
 
     const handleWaiting = useCallback(() => {
         setStatusText("waiting")
@@ -109,9 +141,7 @@ export default function ChatRoom({ onStop, onlineCount }) {
         matched: handleMatched,
         partner_left: handlePartnerLeft,
         waiting: handleWaiting,
-        receive_message: (data) => {
-            if (receiveMessageRef.current) receiveMessageRef.current(data)
-        },
+        receive_message: (data) => receiveMessage(data),
     })
 
     const { destroyPeer } = useWebRTC({
@@ -125,50 +155,11 @@ export default function ChatRoom({ onStop, onlineCount }) {
     // Keep refs in sync
     useEffect(() => { destroyPeerRef.current = destroyPeer }, [destroyPeer])
     useEffect(() => { emitRef.current = emit }, [emit])
-    useEffect(() => { fetchMediaRef.current = fetchMedia }, [fetchMedia])
-    useEffect(() => { clearMessagesRef.current = clearMessages }, [clearMessages])
-    useEffect(() => { localStreamRef.current = localStream }, [localStream])
-    useEffect(() => { receiveMessageRef.current = receiveMessage }, [receiveMessage])
-
-    // Fetch media with specific device IDs
-    const fetchMedia = useCallback(async (aId, vId) => {
-        try {
-            const constraints = {
-                video: vId
-                    ? { deviceId: { exact: vId }, width: { ideal: 720 }, height: { ideal: 480 } }
-                    : { width: { ideal: 720 }, height: { ideal: 480 } },
-                audio: aId ? { deviceId: { exact: aId } } : true,
-            }
-            console.log("[Media] Requesting stream with constraints:", constraints)
-            const stream = await navigator.mediaDevices.getUserMedia(constraints)
-
-            // Stop old tracks - use a ref or capture current localStream to be safe
-            setLocalStream(prevStream => {
-                if (prevStream) {
-                    prevStream.getTracks().forEach(t => t.stop())
-                }
-                return stream
-            })
-
-            stream.getAudioTracks().forEach(t => t.enabled = !isMuted)
-            stream.getVideoTracks().forEach(t => t.enabled = !isCamOff)
-
-            setMediaError(null)
-        } catch (err) {
-            console.error("Media Error:", err)
-            setMediaError(
-                err.name === "NotAllowedError"
-                    ? "Camera/mic permissions were denied. You can still use text chat."
-                    : "We couldn't access your camera at the requested resolution. Try refreshing or check device settings."
-            )
-        }
-    }, [isMuted, isCamOff])
 
     // Initial media fetch
     useEffect(() => {
         fetchMedia(null, null)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [fetchMedia])
 
     // Start looking for partner on mount
     useEffect(() => {
