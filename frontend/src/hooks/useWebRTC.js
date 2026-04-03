@@ -157,8 +157,11 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
                     const hasAudio = signal.sdp?.includes("m=audio");
                     const hasVideo = signal.sdp?.includes("m=video");
                     console.log(`[WebRTC] ${signal.type} SDP includes - audio: ${hasAudio}, video: ${hasVideo}`);
+                    console.log(`[WebRTC] ${signal.type} SDP length: ${signal.sdp?.length || 0} bytes`);
                 }
+                console.log(`[WebRTC] Emitting webrtc_signal event with ${signal.type}`);
                 socket.emit("webrtc_signal", { roomId, signal });
+                console.log(`[WebRTC] Emitted webrtc_signal (${signal.type})`);
             });
 
             // Use track event (more reliable than stream event)
@@ -207,6 +210,12 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
             peer.on("error", (err) => {
                 console.error("[WebRTC] Peer error:", err);
                 console.error("[WebRTC] Error details - Name:", err.name, "Message:", err.message);
+                if (peer._pc) {
+                    console.error("[WebRTC] Connection state:", peer._pc.connectionState);
+                    console.error("[WebRTC] ICE connection state:", peer._pc.iceConnectionState);
+                    console.error("[WebRTC] ICE gathering state:", peer._pc.iceGatheringState);
+                    console.error("[WebRTC] Peer connection state:", peer._pc.signalingState);
+                }
                 if (err.message.includes("Connection")) {
                     console.error("[WebRTC] Connection failed - likely TURN server or firewall issue");
                 }
@@ -214,7 +223,10 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
             });
 
             peer.on("connectionstatechange", (state) => {
-                console.log("[WebRTC] Connection state:", state);
+                console.log("[WebRTC] Connection state changed:", state);
+                if (peer._pc) {
+                    console.log("[WebRTC] Internal PC state - connState:", peer._pc.connectionState, "iceState:", peer._pc.iceConnectionState);
+                }
             });
 
             peerRef.current = peer;
@@ -237,15 +249,19 @@ export function useWebRTC({ roomId, isInitiator, localStream, onRemoteStream, on
         }
 
         const handleSignal = ({ signal, roomId: incomingRoomId }) => {
+            console.log(`[WebRTC] Received signal (${signal.type}) for room ${incomingRoomId || 'unknown'}`);
+            
             // If the signal is for our current room (or if room matching isn't sent, assume current)
             if (peerRef.current && !peerRef.current.destroyed) {
                 try {
+                    console.log(`[WebRTC] Applying signal (${signal.type}) to peer`);
                     peerRef.current.signal(signal);
+                    console.log(`[WebRTC] Signal (${signal.type}) applied successfully`);
                 } catch (e) {
-                    console.warn("[WebRTC] Error signaling:", e.message);
+                    console.error(`[WebRTC] Error signaling (${signal.type}):`, e.message);
                 }
             } else {
-                console.log("[WebRTC] Buffering incoming signal");
+                console.log(`[WebRTC] Peer not ready (destroyed=${peerRef.current?.destroyed}), buffering signal (${signal.type})`);
                 signalBuffer.current.push(signal);
             }
         };
